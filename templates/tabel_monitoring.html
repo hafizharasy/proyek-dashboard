@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+{% block page_title %}Tabel Monitoring Kinerja{% endblock %}
+
+{% block content %}
+<div id="tabel" class="anim-fade panel-card bg-white rounded-xl shadow-sm border border-gray-100 p-6" style="animation-delay:.05s">
+    <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <h2 class="text-lg font-bold text-gray-800">Tabel Monitoring Kinerja</h2>
+        <input id="search-box" type="text" placeholder="Cari nama dinas atau jenis izin..."
+            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-72 focus:ring-2 focus:ring-[#16213D] outline-none">
+    </div>
+    <div class="overflow-y-auto" style="max-height: 640px;">
+        <table class="w-full text-left border-collapse text-sm" id="monitor-table">
+            <thead class="sticky top-0 bg-white">
+                <tr class="border-b border-gray-200">
+                    <th class="sortable py-2 text-xs font-bold text-gray-500 uppercase tracking-wider" data-key="dinas" data-type="text">Dinas<span class="sort-arrow">&#9650;</span></th>
+                    <th class="sortable py-2 text-xs font-bold text-gray-500 uppercase tracking-wider" data-key="jenis" data-type="text">Jenis Izin<span class="sort-arrow">&#9650;</span></th>
+                    <th class="sortable py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-key="masuk" data-type="num">Masuk<span class="sort-arrow">&#9650;</span></th>
+                    <th class="sortable py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-key="proses" data-type="num">Proses<span class="sort-arrow">&#9650;</span></th>
+                    <th class="sortable py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-key="pending" data-type="num">Pending<span class="sort-arrow">&#9650;</span></th>
+                    <th class="sortable py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-key="selesai" data-type="num">Selesai<span class="sort-arrow">&#9650;</span></th>
+                    <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">SLA</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for r in rows %}
+                <tr class="border-b border-gray-100 hover:bg-gray-50"
+                    data-dinas="{{ r.dinas|lower }}" data-jenis="{{ (r.jenis_izin ~ ' ' ~ r.kategori)|lower }}"
+                    data-masuk="{{ r.masuk }}" data-proses="{{ r.proses }}"
+                    data-pending="{{ r.pending }}" data-selesai="{{ r.selesai }}">
+                    <td class="py-2.5 font-medium text-gray-800">{{ r.dinas }}</td>
+                    <td class="py-2.5">
+                        {{ r.jenis_izin }}
+                        {% if r.status_usaha %}<span class="block text-[11px] text-gray-400">{{ r.status_usaha }}</span>{% endif %}
+                    </td>
+                    <td class="py-2.5 text-center">{{ r.masuk|int }}</td>
+                    <td class="py-2.5 text-center">{{ r.proses|int }}</td>
+                    <td class="py-2.5 text-center">{{ r.pending|int }}</td>
+                    <td class="py-2.5 text-center">{{ r.selesai|int }}</td>
+                    <td class="py-2.5 text-center">
+                        {% if r.selesai_asli == 0 %}
+                            <span class="text-gray-300">&mdash;</span>
+                        {% elif r.tepat_waktu >= r.selesai_asli %}
+                            <span class="badge-pop px-2 py-1 bg-[#DCEAE4] text-[#0E6E5C] text-[10px] font-bold rounded-full inline-block">Baik</span>
+                        {% else %}
+                            <span class="badge-pop px-2 py-1 bg-[#F0DAD6] text-[#A6362F] text-[10px] font-bold rounded-full inline-block">Telat</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p id="no-result" class="hidden text-center text-sm text-gray-400 py-8">Tidak ada data yang cocok.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const searchBox = document.getElementById('search-box');
+    const tbody = document.querySelector('#monitor-table tbody');
+    const noResult = document.getElementById('no-result');
+
+    if (searchBox && tbody) {
+        const allRows = Array.from(tbody.querySelectorAll('tr'));
+
+        function applySearch() {
+            const q = searchBox.value.trim().toLowerCase();
+            let visible = 0;
+            allRows.forEach(row => {
+                const match = row.dataset.dinas.includes(q) || row.dataset.jenis.includes(q);
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            if (noResult) noResult.classList.toggle('hidden', visible !== 0);
+        }
+        searchBox.addEventListener('input', applySearch);
+
+        document.querySelectorAll('th.sortable').forEach(th => {
+            let dir = 1;
+            th.addEventListener('click', () => {
+                const key = th.dataset.key;
+                const type = th.dataset.type;
+                const sorted = allRows.slice().sort((a, b) => {
+                    let av = a.dataset[key], bv = b.dataset[key];
+                    if (type === 'num') { av = parseFloat(av); bv = parseFloat(bv); return (av - bv) * dir; }
+                    return av.localeCompare(bv) * dir;
+                });
+                sorted.forEach(r => tbody.appendChild(r));
+
+                document.querySelectorAll('.sort-arrow').forEach(a => a.classList.remove('active', 'desc'));
+                const arrow = th.querySelector('.sort-arrow');
+                arrow.classList.add('active');
+                if (dir === -1) arrow.classList.add('desc');
+
+                dir *= -1;
+            });
+        });
+    }
+</script>
+{% endblock %}

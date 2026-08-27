@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Dashboard Perizinan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(18px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes gentlePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(179,121,14,0.35); }
+            50%      { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(179,121,14,0); }
+        }
+        @keyframes shake {
+            10%, 90% { transform: translateX(-1px); }
+            20%, 80% { transform: translateX(2px); }
+            30%, 50%, 70% { transform: translateX(-4px); }
+            40%, 60% { transform: translateX(4px); }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .login-card { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .login-icon { animation: gentlePulse 2.4s ease-in-out infinite; }
+        .login-error { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+        .pin-field {
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+        .pin-field:focus { transform: scale(1.015); }
+
+        .btn-submit {
+            transition: transform 0.12s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22,33,61,0.25); }
+        .btn-submit:active { transform: translateY(0) scale(0.97); }
+
+        .spinner {
+            width: 16px; height: 16px; border-radius: 9999px;
+            border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+            animation: spin 0.7s linear infinite; display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-[#F3F4F6] flex items-center justify-center h-screen">
+
+    <!-- Container Card Login -->
+    <div class="login-card bg-white p-8 rounded-xl shadow-md w-full max-w-sm border border-gray-200">
+
+        <!-- Logo & Judul -->
+        <div class="text-center mb-8">
+            <div class="login-icon w-12 h-12 bg-[#B3790E] rounded-full mx-auto flex items-center justify-center text-white mb-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z" />
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">Dashboard Kinerja</h2>
+            <p class="text-sm text-gray-500 mt-1">Pelayanan Perizinan &mdash; Masukkan PIN akses</p>
+        </div>
+
+        <!-- Pesan flash -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="login-error mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Form Login (PIN) -->
+        <form action="{{ url_for('halaman_login') }}" method="POST" class="space-y-5" id="form-login">
+            <div>
+                <label for="pin" class="block text-sm font-medium text-gray-700 mb-1">PIN Akses</label>
+                <input type="password" id="pin" name="pin" required inputmode="numeric" autofocus
+                    class="pin-field w-full px-4 py-2 border border-gray-300 rounded-lg tracking-[6px] text-center text-lg focus:ring-2 focus:ring-[#16213D] focus:border-[#16213D] outline-none"
+                    placeholder="••••">
+            </div>
+
+            <button type="submit" id="btn-submit"
+                class="btn-submit w-full bg-[#16213D] hover:bg-[#0F1830] text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2">
+                <span id="btn-label">Masuk Dashboard</span>
+            </button>
+        </form>
+
+        <p class="text-center text-xs text-gray-400 mt-6">PIN demo: <strong>2026</strong> &mdash; ubah nilai <code>PIN_AKSES</code> di app.py untuk penggunaan nyata.</p>
+    </div>
+
+    <script>
+        document.getElementById('form-login').addEventListener('submit', function () {
+            const btn = document.getElementById('btn-submit');
+            const label = document.getElementById('btn-label');
+            btn.disabled = true;
+            btn.classList.add('opacity-90', 'cursor-not-allowed');
+            label.textContent = 'Memeriksa...';
+            const spinner = document.createElement('span');
+            spinner.className = 'spinner';
+            btn.prepend(spinner);
+        });
+    </script>
+
+</body>
+</html>

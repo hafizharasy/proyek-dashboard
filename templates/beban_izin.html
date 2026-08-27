@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block page_title %}Beban Jenis Izin{% endblock %}
+
+{% block content %}
+<div class="anim-fade grid grid-cols-2 gap-6 mb-6" style="animation-delay:.02s">
+    <div class="kpi-card bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#B3790E]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Jenis Izin Paling Ramai</span>
+        {% if jenis_ranked %}
+        <div class="text-lg font-bold text-[#16213D] mt-2 truncate" title="{{ jenis_ranked[0].nama }}">{{ jenis_ranked[0].nama }}</div>
+        <p class="text-xs text-gray-400 mt-1">{{ jenis_ranked[0].masuk|int }} permohonan ({{ '%.0f'|format(jenis_ranked[0].persen) }}% dari total)</p>
+        {% else %}
+        <div class="text-sm text-gray-400 mt-2">Belum ada data</div>
+        {% endif %}
+    </div>
+    <div class="kpi-card bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#16213D]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Jenis Izin Tercatat</span>
+        <div class="text-lg font-bold text-[#16213D] mt-2">{{ jumlah_jenis_izin }} jenis</div>
+        <p class="text-xs text-gray-400 mt-1">Dilayani oleh {{ jumlah_dinas }} dinas</p>
+    </div>
+</div>
+
+<div class="anim-fade grid grid-cols-2 gap-6" style="animation-delay:.1s">
+    <div id="beban-izin" class="panel-card bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-bold text-gray-800">Beban Jenis Izin</h2>
+        <p class="text-xs text-gray-400 mb-4">Volume permohonan per jenis izin &mdash; membantu alokasi sumber daya ke jenis layanan paling ramai</p>
+        <div style="height:380px;"><canvas id="chart-pie"></canvas></div>
+    </div>
+
+    <div class="panel-card bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-bold text-gray-800">Ranking Semua Jenis Izin</h2>
+        <p class="text-xs text-gray-400 mb-4">{{ jumlah_jenis_izin }} jenis izin, diurutkan dari volume tertinggi</p>
+        <div class="overflow-y-auto" style="max-height: 380px;">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead class="sticky top-0 bg-white">
+                    <tr class="border-b border-gray-200">
+                        <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">#</th>
+                        <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Jenis Izin</th>
+                        <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Masuk</th>
+                        <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">%</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700">
+                    {% for j in jenis_ranked %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-2 text-gray-400">{{ loop.index }}</td>
+                        <td class="py-2 font-medium text-gray-800">{{ j.nama }}</td>
+                        <td class="py-2 text-center">{{ j.masuk|int }}</td>
+                        <td class="py-2 text-center text-gray-500">{{ '%.1f'|format(j.persen) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const pieCanvas = document.getElementById('chart-pie');
+    if (pieCanvas) {
+        new Chart(pieCanvas, {
+            type: 'pie',
+            data: {
+                labels: {{ pie_labels|tojson }},
+                datasets: [{
+                    data: {{ pie_values|tojson }},
+                    backgroundColor: ['#16213D', '#0E6E5C', '#B3790E', '#A6362F', '#5C5849', '#9C7A2E', '#7A8B99']
+                }]
+            },
+            options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } }
+        });
+    }
+</script>
+{% endblock %}

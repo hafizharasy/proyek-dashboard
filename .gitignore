@@ -1,0 +1,14 @@
+# Data & file yang dihasilkan aplikasi -- jangan ikut di-commit
+dashboard.db
+uploads/*
+!uploads/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+.vscode/

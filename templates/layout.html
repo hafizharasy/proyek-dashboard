@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard Kinerja Pelayanan Perizinan{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        th.sortable { cursor: pointer; user-select: none; }
+        th.sortable:hover { color: #B3790E; }
+        .tab-btn.active { color: #16213D; border-bottom-color: #B3790E; font-weight: 700; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ---------- animations ---------- */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .anim-fade { opacity: 0; animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .anim-fade.d1 { animation-delay: .05s; }
+        .anim-fade.d2 { animation-delay: .12s; }
+        .anim-fade.d3 { animation-delay: .19s; }
+
+        .kpi-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(22,33,61,0.10); }
+
+        .nav-link { position: relative; transition: background-color 0.2s ease, color 0.2s ease, padding-left 0.2s ease; }
+        .nav-link::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            background: #B3790E; transform: scaleY(0); transition: transform 0.2s ease;
+        }
+        .nav-link:hover { padding-left: 28px; }
+        .nav-link:hover::before, .nav-link.active::before { transform: scaleY(1); }
+
+        .panel-card { transition: box-shadow 0.25s ease; }
+        .panel-card:hover { box-shadow: 0 10px 24px rgba(22,33,61,0.08); }
+
+        .tab-panel.active { animation: fadeInUp 0.35s ease both; }
+
+        .sort-arrow { display: inline-block; margin-left: 3px; font-size: 9px; transition: transform 0.2s ease, opacity 0.2s ease; opacity: 0.35; }
+        .sort-arrow.active { opacity: 1; color: #B3790E; }
+        .sort-arrow.desc { transform: rotate(180deg); }
+
+        #search-box { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        #search-box:focus { transform: scale(1.015); }
+
+        .warning-item { opacity: 0; animation: fadeInUp 0.4s ease forwards; transition: transform 0.15s ease, border-color 0.15s ease; }
+        .warning-item:hover { transform: translateX(3px); }
+
+        .quick-link { transition: transform 0.15s ease; }
+        .quick-link:active { transform: scale(0.97); }
+
+        tbody tr { transition: background-color 0.15s ease; }
+
+        .badge-pop { transition: transform 0.15s ease; }
+        tr:hover .badge-pop { transform: scale(1.06); }
+
+        .page-fade { animation: fadeInUp 0.3s ease both; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-[#F3F4F6] font-sans h-screen overflow-hidden flex">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-[#16213D] text-white flex flex-col h-full shadow-lg z-10">
+        <div class="h-16 flex items-center px-6 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-[#B3790E] rounded-full flex items-center justify-center text-xs font-bold text-white">DP</div>
+                <span class="font-bold text-base tracking-wide leading-tight">Dashboard<br>Perizinan</span>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1">
+                <li><a href="{{ url_for('halaman_ringkasan', periode=period_key, segmen=segmen) }}" class="nav-link block px-6 py-3 text-sm {{ 'bg-[#233355] font-semibold active' if active_page == 'ringkasan' else 'text-gray-300 hover:bg-[#233355] hover:text-white' }}">Ringkasan (KPI)</a></li>
+                <li><a href="{{ url_for('halaman_peringkat_dinas', periode=period_key, segmen=segmen) }}" class="nav-link block px-6 py-3 text-sm {{ 'bg-[#233355] font-semibold active' if active_page == 'peringkat-dinas' else 'text-gray-300 hover:bg-[#233355] hover:text-white' }}">Peringkat Dinas</a></li>
+                <li><a href="{{ url_for('halaman_beban_izin', periode=period_key, segmen=segmen) }}" class="nav-link block px-6 py-3 text-sm {{ 'bg-[#233355] font-semibold active' if active_page == 'beban-izin' else 'text-gray-300 hover:bg-[#233355] hover:text-white' }}">Beban Jenis Izin</a></li>
+                <li><a href="{{ url_for('halaman_tabel_monitoring', periode=period_key, segmen=segmen) }}" class="nav-link block px-6 py-3 text-sm {{ 'bg-[#233355] font-semibold active' if active_page == 'tabel-monitoring' else 'text-gray-300 hover:bg-[#233355] hover:text-white' }}">Tabel Monitoring</a></li>
+                <li><a href="{{ url_for('halaman_peringatan', periode=period_key, segmen=segmen) }}" class="nav-link block px-6 py-3 text-sm {{ 'bg-[#233355] font-semibold active' if active_page == 'peringatan' else 'text-gray-300 hover:bg-[#233355] hover:text-white' }}">Perlu Perhatian</a></li>
+
+                <li class="pt-6 pb-2 px-6 text-xs font-bold text-gray-400 uppercase tracking-wider">Impor Data Bulanan</li>
+                <li class="px-6 py-2">
+                    <form action="{{ url_for('upload_excel') }}" method="POST" enctype="multipart/form-data" class="flex flex-col gap-2">
+                        <div class="flex gap-2">
+                            <select name="bulan" class="flex-1 text-xs px-2 py-2 rounded-lg bg-[#233355] text-white border border-white/10 focus:outline-none focus:ring-1 focus:ring-[#B3790E]">
+                                {% for b in bulan_list %}
+                                <option value="{{ b }}" {{ 'selected' if b == bulan_default else '' }}>{{ b }}</option>
+                                {% endfor %}
+                            </select>
+                            <select name="tahun" class="w-20 text-xs px-2 py-2 rounded-lg bg-[#233355] text-white border border-white/10 focus:outline-none focus:ring-1 focus:ring-[#B3790E]">
+                                {% for t in tahun_list %}
+                                <option value="{{ t }}" {{ 'selected' if t == tahun_default else '' }}>{{ t }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <input type="file" name="file_excel" accept=".xlsx,.xls" required
+                            class="w-full text-[11px] text-gray-300 file:mr-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-[#B3790E] file:text-white file:text-[11px] file:cursor-pointer cursor-pointer">
+                        <select name="sumber_segmen" class="w-full text-xs px-2 py-2 rounded-lg bg-[#233355] text-white border border-white/10 focus:outline-none focus:ring-1 focus:ring-[#B3790E]">
+                            <option value="">Semua data di file ini (timpa periode)</option>
+                            <option value="pelaku-usaha">Hanya ambil baris Pelaku Usaha</option>
+                            <option value="non-pelaku-usaha">Hanya ambil baris Non Pelaku Usaha</option>
+                        </select>
+                        <button type="submit" class="quick-link w-full text-xs font-bold bg-white/10 hover:bg-white/20 text-white py-1.5 rounded-lg transition">Impor sebagai Periode Ini</button>
+                    </form>
+                </li>
+                <li><a href="{{ url_for('muat_data_contoh') }}" class="nav-link quick-link block px-6 py-3 hover:bg-[#233355] text-sm text-gray-300 hover:text-white">Muat Data Contoh</a></li>
+                <li><a href="{{ url_for('unduh_template') }}" class="nav-link quick-link block px-6 py-3 hover:bg-[#233355] text-sm text-gray-300 hover:text-white">Unduh Template Excel</a></li>
+
+                {% if all_periods %}
+                {% if combined_available %}
+                <li class="px-3 pt-4">
+                    <a href="{{ url_for(request.endpoint, periode='semua-periode', segmen=segmen) }}"
+                       class="block px-3 py-2 rounded-lg text-xs font-bold {{ 'bg-[#B3790E] text-white' if period_key == 'semua-periode' else 'bg-white/10 text-gray-200 hover:bg-white/20' }}">
+                        &#128202; Gabungan Semua Periode
+                    </a>
+                </li>
+                {% endif %}
+                <li class="pt-4 pb-2 px-6 text-xs font-bold text-gray-400 uppercase tracking-wider">Periode Tersimpan</li>
+                {% for p in all_periods %}
+                <li class="px-6 py-2 flex items-center justify-between gap-2 {{ 'bg-[#233355]' if p.key == period_key else '' }} rounded-lg mx-3">
+                    <a href="{{ url_for(request.endpoint, periode=p.key, segmen=segmen) }}"
+                       class="text-xs {{ 'text-white font-semibold' if p.key == period_key else 'text-gray-300 hover:text-white' }} truncate">{{ p.label }}</a>
+                    <a href="{{ url_for('hapus_periode', key=p.key) }}"
+                       onclick="return confirm('Hapus periode \'{{ p.label }}\'? Data periode ini akan hilang.');"
+                       class="text-gray-500 hover:text-[#A6362F] text-xs" title="Hapus periode">&times;</a>
+                </li>
+                {% endfor %}
+                {% endif %}
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+
+        <!-- HEADER -->
+        <header class="h-16 bg-white flex items-center justify-between px-8 shadow-sm z-0 gap-4">
+            <h1 class="text-xl font-bold text-gray-800 whitespace-nowrap">{% block page_title %}Dashboard Kinerja Pelayanan Perizinan{% endblock %}</h1>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center rounded-lg border border-gray-300 overflow-hidden text-xs">
+                    <a href="{{ url_for(request.endpoint, periode=period_key, segmen='semua') }}"
+                       class="px-3 py-1.5 font-semibold {{ 'bg-[#16213D] text-white' if segmen == 'semua' else 'bg-white text-gray-600 hover:bg-gray-50' }}">Semua</a>
+                    <a href="{{ url_for(request.endpoint, periode=period_key, segmen='pelaku-usaha') }}"
+                       class="px-3 py-1.5 font-semibold border-l border-gray-300 {{ 'bg-[#16213D] text-white' if segmen == 'pelaku-usaha' else 'bg-white text-gray-600 hover:bg-gray-50' }}">Pelaku Usaha</a>
+                    <a href="{{ url_for(request.endpoint, periode=period_key, segmen='non-pelaku-usaha') }}"
+                       class="px-3 py-1.5 font-semibold border-l border-gray-300 {{ 'bg-[#16213D] text-white' if segmen == 'non-pelaku-usaha' else 'bg-white text-gray-600 hover:bg-gray-50' }}">Non Pelaku Usaha</a>
+                </div>
+                {% if all_periods %}
+                <select onchange="if(this.value) window.location.href='{{ url_for(request.endpoint) }}?periode='+this.value+'&segmen={{ segmen }}'"
+                    class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-[#16213D] outline-none">
+                    {% if combined_available %}
+                    <option value="semua-periode" {{ 'selected' if period_key == 'semua-periode' else '' }}>&#128202; Gabungan Semua Periode</option>
+                    {% endif %}
+                    {% for p in all_periods %}
+                    <option value="{{ p.key }}" {{ 'selected' if p.key == period_key else '' }}>{{ p.label }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-[#16213D] rounded-full text-white flex items-center justify-center font-bold text-sm">A</div>
+                    <span class="text-sm font-medium text-gray-700">Administrator</span>
+                </div>
+                <a href="{{ url_for('logout') }}" class="text-sm text-red-600 hover:text-red-800 font-bold border-l border-gray-300 pl-4 transition">Keluar</a>
+            </div>
+        </header>
+
+        <!-- PAGE CONTENT (Scrollable) -->
+        <main class="flex-1 overflow-x-hidden overflow-y-auto p-8 page-fade">
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="mb-6 text-sm text-gray-700 bg-white border-l-4 border-[#B3790E] rounded px-4 py-3 shadow-sm">
+                        {{ messages[0] }}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% if not rows and period_had_data %}
+            <!-- EMPTY STATE -- karena filter segmen, bukan karena datanya kosong -->
+            <div class="text-center py-16 bg-white rounded-xl border border-gray-100">
+                <h2 class="text-xl font-bold text-gray-800 mb-2">Tidak Ada Data "{{ 'Pelaku Usaha' if segmen == 'pelaku-usaha' else 'Non Pelaku Usaha' }}" di Periode Ini</h2>
+                <p class="text-sm text-gray-500 mb-6">Periode ini punya data, tapi tidak ada baris dengan status tersebut. Coba pilih segmen lain.</p>
+                <a href="{{ url_for(request.endpoint, periode=period_key, segmen='semua') }}" class="bg-[#16213D] hover:bg-[#0F1830] text-white text-sm font-bold py-2 px-5 rounded-lg transition">Lihat Semua Data</a>
+            </div>
+            {% elif not rows %}
+            <!-- EMPTY STATE -->
+            <div class="text-center py-16 bg-white rounded-xl border border-gray-100">
+                <h2 class="text-xl font-bold text-gray-800 mb-2">Belum Ada Data untuk Periode Ini</h2>
+                <p class="text-sm text-gray-500 mb-6">Impor rekap Excel bulanan, atau muat data contoh untuk melihat pratinjau dashboard.</p>
+                <form action="{{ url_for('upload_excel') }}" method="POST" enctype="multipart/form-data"
+                    class="flex items-center justify-center gap-2 flex-wrap max-w-2xl mx-auto mb-4">
+                    <select name="bulan" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#16213D] outline-none">
+                        {% for b in bulan_list %}
+                        <option value="{{ b }}" {{ 'selected' if b == bulan_default else '' }}>{{ b }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="tahun" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#16213D] outline-none">
+                        {% for t in tahun_list %}
+                        <option value="{{ t }}" {{ 'selected' if t == tahun_default else '' }}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="file" name="file_excel" accept=".xlsx,.xls" required
+                        class="text-sm text-gray-600 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:text-sm file:cursor-pointer cursor-pointer">
+                    <select name="sumber_segmen" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#16213D] outline-none">
+                        <option value="">Semua data di file ini</option>
+                        <option value="pelaku-usaha">Hanya baris Pelaku Usaha</option>
+                        <option value="non-pelaku-usaha">Hanya baris Non Pelaku Usaha</option>
+                    </select>
+                    <button type="submit" class="bg-[#16213D] hover:bg-[#0F1830] text-white text-sm font-bold py-2 px-5 rounded-lg transition">Impor Excel</button>
+                </form>
+                <div class="flex items-center justify-center gap-3">
+                    <a href="{{ url_for('muat_data_contoh') }}" class="border border-gray-300 text-gray-700 text-sm font-bold py-2 px-5 rounded-lg hover:bg-gray-50 transition">Muat Data Contoh</a>
+                    <a href="{{ url_for('unduh_template') }}" class="text-[#0E6E5C] text-sm underline">Unduh template</a>
+                </div>
+            </div>
+            {% else %}
+
+            {% if file_name %}
+            <div class="mb-2 text-xs text-gray-500 bg-white border border-gray-100 rounded-lg px-4 py-2 flex items-center justify-between">
+                <span>Periode: <strong>{{ period_label }}</strong> &middot; sumber: <strong>{{ file_name }}</strong> &middot; {{ rows|length }} baris &middot; diperbarui {{ uploaded_at }}</span>
+                <a href="{{ url_for('unduh_template') }}" class="text-[#0E6E5C] underline">Unduh template</a>
+            </div>
+            {% if pending_method == 'tidak_ada' %}
+            <div class="mb-6 text-xs text-[#8a6215] bg-[#F3E6C9] border border-[#e6cf9a] rounded-lg px-4 py-2">
+                Catatan: file sumber tidak memisahkan status "Pending" secara terpisah, sehingga seluruh berkas yang belum selesai dihitung sebagai "Proses" (kolom Pending akan bernilai 0).
+            </div>
+            {% elif pending_method == 'tahapan' %}
+            <div class="mb-6 text-xs text-[#1B4B6B] bg-[#DCEAF2] border border-[#b8d8e8] rounded-lg px-4 py-2">
+                Catatan: file sumber tidak punya kolom Pending/Proses langsung -- dihitung otomatis dari sisa berkas yang belum selesai (Berkas Masuk &minus; Berkas Selesai), lalu dikategorikan berdasarkan status tahap PD Teknis &amp; DPMPTSP. <strong>Pending</strong> = kedua tahap masih 0/kosong (belum tersentuh sama sekali). <strong>Sedang Diproses</strong> = minimal salah satu tahap sudah &gt; 0.
+            </div>
+            {% elif pending_method == 'campuran' %}
+            <div class="mb-6 text-xs text-[#8a6215] bg-[#F3E6C9] border border-[#e6cf9a] rounded-lg px-4 py-2">
+                Catatan: tampilan gabungan ini mencampur periode dengan cara hitung Pending/Proses yang berbeda-beda (sebagian eksplisit, sebagian dihitung otomatis) -- angka Pending/Proses di sini bersifat perkiraan.
+            </div>
+            {% else %}
+            <div class="mb-6"></div>
+            {% endif %}
+            {% endif %}
+
+            {% block content %}{% endblock %}
+
+            {% endif %}
+        </main>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

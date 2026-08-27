@@ -1,0 +1,286 @@
+{% extends "layout.html" %}
+{% block page_title %}Ringkasan Kinerja{% endblock %}
+
+{% block content %}
+<div id="ringkasan" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+    <div class="kpi-card anim-fade d1 bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#B3790E]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Berkas Masuk</span>
+        <div class="text-3xl font-bold text-[#16213D] mt-2 kpi-count" data-target="{{ totals.masuk }}" data-decimals="0">0</div>
+        <p class="text-xs text-gray-400 mt-1">Akumulasi seluruh permohonan</p>
+    </div>
+    <div class="kpi-card anim-fade bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#B3790E]" style="animation-delay:.2s">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Sedang Diproses</span>
+        <div class="text-3xl font-bold text-[#B3790E] mt-2 kpi-count" data-target="{{ totals.proses }}" data-decimals="0">0</div>
+        <p class="text-xs text-gray-400 mt-1">Sudah lolos salah satu tahap</p>
+    </div>
+    <div class="kpi-card anim-fade bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#A6362F]" style="animation-delay:.23s">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Pending</span>
+        <div class="text-3xl font-bold text-[#A6362F] mt-2 kpi-count" data-target="{{ totals.pending }}" data-decimals="0">0</div>
+        <p class="text-xs text-gray-400 mt-1">Belum tersentuh tahap manapun</p>
+    </div>
+    <div class="kpi-card anim-fade d2 bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#B3790E]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Berkas Selesai</span>
+        <div class="text-3xl font-bold text-[#16213D] mt-2 kpi-count" data-target="{{ totals.selesai }}" data-decimals="0">0</div>
+        <p class="text-xs text-gray-400 mt-1">Permohonan yang berhasil ditutup</p>
+    </div>
+    <div class="kpi-card anim-fade bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#0E6E5C]" style="animation-delay:.16s">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Selesai Tepat Waktu</span>
+        <div class="text-3xl font-bold text-[#0E6E5C] mt-2 kpi-count" data-target="{{ totals.tepat_waktu }}" data-decimals="0">0</div>
+        <p class="text-xs text-gray-400 mt-1">Bagian dari Selesai Asli yang tepat waktu</p>
+    </div>
+    <div class="kpi-card anim-fade d3 bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#B3790E]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Rasio Tepat Waktu (SLA)</span>
+        <div class="text-3xl font-bold mt-2 kpi-count {{ 'text-[#0E6E5C]' if totals.sla >= 80 else 'text-[#A6362F]' }}" data-target="{{ totals.sla }}" data-decimals="1" data-suffix="%">0%</div>
+        <p class="text-xs text-gray-400 mt-1">Tepat waktu &divide; berkas selesai</p>
+    </div>
+</div>
+
+{% if usaha_comparison %}
+<div class="anim-fade panel-card bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6" style="animation-delay:.2s">
+    <h2 class="text-lg font-bold text-gray-800">Perbandingan Pelaku Usaha vs Non Pelaku Usaha</h2>
+    <p class="text-xs text-gray-400 mb-4">Masuk &amp; Selesai untuk periode/segmen yang sedang ditampilkan &mdash; tidak terpengaruh toggle Semua/Pelaku Usaha/Non Pelaku Usaha di atas</p>
+    <div class="grid grid-cols-3 gap-6">
+        <div class="col-span-2" style="height:240px;"><canvas id="chart-usaha"></canvas></div>
+        <div class="flex flex-col justify-center gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#16213D] inline-block"></span>
+                    <span class="text-xs font-semibold text-gray-700">Pelaku Usaha</span>
+                </div>
+                <p class="text-xl font-bold text-[#16213D]">{{ '{:,.0f}'.format(usaha_comparison.pelaku_usaha.masuk).replace(',', '.') }} <span class="text-xs font-normal text-gray-400">masuk</span></p>
+                <p class="text-xs text-gray-400">{{ '{:,.0f}'.format(usaha_comparison.pelaku_usaha.selesai).replace(',', '.') }} selesai</p>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#0E6E5C] inline-block"></span>
+                    <span class="text-xs font-semibold text-gray-700">Non Pelaku Usaha</span>
+                </div>
+                <p class="text-xl font-bold text-[#0E6E5C]">{{ '{:,.0f}'.format(usaha_comparison.non_pelaku_usaha.masuk).replace(',', '.') }} <span class="text-xs font-normal text-gray-400">masuk</span></p>
+                <p class="text-xs text-gray-400">{{ '{:,.0f}'.format(usaha_comparison.non_pelaku_usaha.selesai).replace(',', '.') }} selesai</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if trend|length > 1 %}
+<div class="anim-fade panel-card bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6" style="animation-delay:.24s">
+    <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+        <h2 class="text-lg font-bold text-gray-800">Tren Bulanan</h2>
+        {% if trend_delta %}
+        <div class="flex items-center gap-3 text-xs">
+            <span class="text-gray-400">{{ trend_delta.label_prev }} &rarr; {{ trend_delta.label_now }}</span>
+            {% if trend_delta.masuk is not none %}
+            <span class="font-bold {{ 'text-[#0E6E5C]' if trend_delta.masuk >= 0 else 'text-[#A6362F]' }}">
+                Masuk {{ '▲' if trend_delta.masuk >= 0 else '▼' }} {{ '%.1f'|format(trend_delta.masuk|abs) }}%
+            </span>
+            {% endif %}
+            {% if trend_delta.selesai is not none %}
+            <span class="font-bold {{ 'text-[#0E6E5C]' if trend_delta.selesai >= 0 else 'text-[#A6362F]' }}">
+                Selesai {{ '▲' if trend_delta.selesai >= 0 else '▼' }} {{ '%.1f'|format(trend_delta.selesai|abs) }}%
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <p class="text-xs text-gray-400 mb-4">Perbandingan Berkas Masuk vs Selesai tiap periode yang tersimpan</p>
+    <div style="height:260px;"><canvas id="chart-trend"></canvas></div>
+</div>
+{% endif %}
+
+<div class="anim-fade grid grid-cols-3 gap-6 mb-6" style="animation-delay:.3s">
+    <div class="panel-card col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="px-6 pt-5 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">Papan Peringkat Kinerja Dinas</h2>
+                <p class="text-xs text-gray-400 mb-2">Bahan evaluasi perbandingan antar dinas</p>
+            </div>
+            <a href="{{ url_for('halaman_peringkat_dinas', periode=period_key) }}" class="text-xs text-[#0E6E5C] underline whitespace-nowrap">Lihat detail &rarr;</a>
+        </div>
+        <div class="px-6 flex gap-1 border-b border-gray-100">
+            <button class="tab-btn active text-sm px-3 py-2 border-b-2 border-transparent text-gray-500" data-tab="produktif">Paling Produktif</button>
+            <button class="tab-btn text-sm px-3 py-2 border-b-2 border-transparent text-gray-500" data-tab="bottleneck">Rapor Merah</button>
+            <button class="tab-btn text-sm px-3 py-2 border-b-2 border-transparent text-gray-500" data-tab="tepatwaktu">Paling Tepat Waktu</button>
+        </div>
+        <div class="p-6">
+            <div class="tab-panel active" data-panel="produktif" style="height:260px;"><canvas id="chart-produktif"></canvas></div>
+            <div class="tab-panel" data-panel="bottleneck" style="height:260px;"><canvas id="chart-bottleneck"></canvas></div>
+            <div class="tab-panel" data-panel="tepatwaktu" style="height:260px;"><canvas id="chart-tepatwaktu"></canvas></div>
+        </div>
+    </div>
+
+    <div class="panel-card col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-gray-800">Beban Jenis Izin</h2>
+        </div>
+        <p class="text-xs text-gray-400 mb-4">Volume permohonan per jenis izin</p>
+        <div style="height:280px;"><canvas id="chart-pie"></canvas></div>
+        <a href="{{ url_for('halaman_beban_izin', periode=period_key) }}" class="block text-center text-xs text-[#0E6E5C] underline mt-3">Lihat lebih besar &rarr;</a>
+    </div>
+</div>
+
+<div class="anim-fade grid grid-cols-2 gap-6" style="animation-delay:.38s">
+    <a href="{{ url_for('halaman_tabel_monitoring', periode=period_key) }}" class="panel-card bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:border-[#B3790E] transition">
+        <h3 class="font-bold text-gray-800 mb-1">Buka Tabel Monitoring &rarr;</h3>
+        <p class="text-xs text-gray-500">Cari & urutkan seluruh baris data mentah per dinas dan jenis izin.</p>
+    </a>
+    <a href="{{ url_for('halaman_peringatan', periode=period_key) }}" class="panel-card bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:border-[#A6362F] transition">
+        <h3 class="font-bold text-[#A6362F] mb-1">Perlu Perhatian Khusus &rarr;</h3>
+        <p class="text-xs text-gray-500">{{ warning_list|length }} jenis izin dengan berkas telat dari SLA.</p>
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function animateCount(el) {
+        const target = parseFloat(el.dataset.target) || 0;
+        const decimals = parseInt(el.dataset.decimals || '0', 10);
+        const suffix = el.dataset.suffix || '';
+        const duration = 900;
+        const start = performance.now();
+        function frame(now) {
+            const progress = Math.min((now - start) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const value = target * eased;
+            const formatted = decimals > 0 ? value.toFixed(decimals) : Math.round(value).toLocaleString('id-ID');
+            el.textContent = formatted + suffix;
+            if (progress < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    }
+    document.querySelectorAll('.kpi-count').forEach(animateCount);
+
+    // ---------- Perbandingan Pelaku Usaha vs Non Pelaku Usaha ----------
+    {% if usaha_comparison %}
+    const usahaCanvas = document.getElementById('chart-usaha');
+    if (usahaCanvas) {
+        new Chart(usahaCanvas, {
+            type: 'bar',
+            data: {
+                labels: ['Masuk', 'Selesai', 'Proses', 'Pending'],
+                datasets: [
+                    {
+                        label: 'Pelaku Usaha',
+                        data: [
+                            {{ usaha_comparison.pelaku_usaha.masuk }},
+                            {{ usaha_comparison.pelaku_usaha.selesai }},
+                            {{ usaha_comparison.pelaku_usaha.proses }},
+                            {{ usaha_comparison.pelaku_usaha.pending }}
+                        ],
+                        backgroundColor: '#16213D', borderRadius: 3,
+                    },
+                    {
+                        label: 'Non Pelaku Usaha',
+                        data: [
+                            {{ usaha_comparison.non_pelaku_usaha.masuk }},
+                            {{ usaha_comparison.non_pelaku_usaha.selesai }},
+                            {{ usaha_comparison.non_pelaku_usaha.proses }},
+                            {{ usaha_comparison.non_pelaku_usaha.pending }}
+                        ],
+                        backgroundColor: '#0E6E5C', borderRadius: 3,
+                    },
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+    {% endif %}
+
+    // ---------- Tab switching (leaderboard mini) ----------
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+        });
+    });
+
+    // ---------- Bar charts (leaderboard) ----------
+    const palette = { navy: '#16213D', teal: '#0E6E5C', amber: '#B3790E', red: '#A6362F' };
+
+    function makeBarChart(canvasId, labels, values, color, isPercent) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        new Chart(canvas, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ data: values, backgroundColor: color, borderRadius: 3 }] },
+            options: {
+                indexAxis: 'y',
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false },
+                    tooltip: { callbacks: { label: (ctx) => isPercent ? (ctx.raw * 100).toFixed(1) + '%' : ctx.raw } } },
+                scales: {
+                    x: { ticks: { callback: v => isPercent ? (v * 100) + '%' : v } },
+                    y: { ticks: { autoSkip: false } }
+                }
+            }
+        });
+    }
+
+    makeBarChart('chart-produktif',
+        {{ produktif|map(attribute='dinas')|list|tojson }},
+        {{ produktif|map(attribute='selesai')|list|tojson }},
+        palette.teal, false);
+
+    makeBarChart('chart-bottleneck',
+        {{ bottleneck|map(attribute='dinas')|list|tojson }},
+        {{ bottleneck|map(attribute='backlog_ratio')|list|tojson }},
+        palette.red, true);
+
+    makeBarChart('chart-tepatwaktu',
+        {{ tepat_waktu_top|map(attribute='dinas')|list|tojson }},
+        {{ tepat_waktu_top|map(attribute='sla_ratio')|list|tojson }},
+        palette.navy, true);
+
+    // ---------- Pie chart (beban jenis izin) ----------
+    const ringkasanPieCanvas = document.getElementById('chart-pie');
+    if (ringkasanPieCanvas) {
+        new Chart(ringkasanPieCanvas, {
+            type: 'pie',
+            data: {
+                labels: {{ pie_labels|tojson }},
+                datasets: [{
+                    data: {{ pie_values|tojson }},
+                    backgroundColor: ['#16213D', '#0E6E5C', '#B3790E', '#A6362F', '#5C5849', '#9C7A2E', '#7A8B99']
+                }]
+            },
+            options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+        });
+    }
+    // ---------- Line chart (tren bulanan) ----------
+    const trendCanvas = document.getElementById('chart-trend');
+    if (trendCanvas) {
+        new Chart(trendCanvas, {
+            type: 'line',
+            data: {
+                labels: {{ trend|map(attribute='label')|list|tojson }},
+                datasets: [
+                    {
+                        label: 'Berkas Masuk',
+                        data: {{ trend|map(attribute='masuk')|list|tojson }},
+                        borderColor: palette.navy, backgroundColor: palette.navy,
+                        tension: 0.3, pointRadius: 4,
+                    },
+                    {
+                        label: 'Berkas Selesai',
+                        data: {{ trend|map(attribute='selesai')|list|tojson }},
+                        borderColor: palette.teal, backgroundColor: palette.teal,
+                        tension: 0.3, pointRadius: 4,
+                    },
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+</script>
+{% endblock %}

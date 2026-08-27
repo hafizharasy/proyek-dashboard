@@ -1,0 +1,5 @@
+Flask
+openpyxl
+xlrd
+gunicorn
+psycopg2-binary

@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+{% block page_title %}Perlu Perhatian Khusus{% endblock %}
+
+{% block content %}
+<div class="anim-fade grid grid-cols-3 gap-6 mb-6" style="animation-delay:.02s">
+    <div class="kpi-card bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#A6362F]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Jenis Izin Bermasalah</span>
+        <div class="text-3xl font-bold text-[#A6362F] mt-2">{{ warning_list|length }}</div>
+        <p class="text-xs text-gray-400 mt-1">dari {{ jumlah_jenis_izin }} jenis izin tercatat</p>
+    </div>
+    <div class="kpi-card bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#B3790E]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Berkas Telat</span>
+        <div class="text-3xl font-bold text-[#B3790E] mt-2">{{ total_overdue|int }}</div>
+        <p class="text-xs text-gray-400 mt-1">akumulasi seluruh keterlambatan</p>
+    </div>
+    <div class="kpi-card bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#16213D]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Dinas Paling Bermasalah</span>
+        {% if warning_by_dinas %}
+        <div class="text-lg font-bold text-[#16213D] mt-2 truncate" title="{{ warning_by_dinas[0].dinas }}">{{ warning_by_dinas[0].dinas }}</div>
+        <p class="text-xs text-gray-400 mt-1">{{ warning_by_dinas[0].total_overdue|int }} berkas telat</p>
+        {% else %}
+        <div class="text-sm text-gray-400 mt-2">Tidak ada</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="anim-fade grid grid-cols-3 gap-6" style="animation-delay:.1s">
+    <div id="peringatan" class="panel-card col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="p-6 pb-3 border-b border-gray-100">
+            <h2 class="text-lg font-bold text-[#A6362F]">Perlu Perhatian Khusus</h2>
+            <p class="text-xs text-gray-400 mt-1">Berkas Selesai &minus; Tepat Waktu &gt; 0 &mdash; jenis izin yang paling banyak telat diproses</p>
+        </div>
+        <div class="p-4 flex flex-col gap-2" style="max-height: 560px; overflow-y: auto;">
+            {% if not warning_list %}
+            <p class="text-center text-sm text-gray-400 py-8">Tidak ada keterlambatan tercatat. Seluruh jenis izin sesuai SLA.</p>
+            {% endif %}
+            {% for w in warning_list %}
+            <div class="warning-item border border-gray-100 rounded-lg p-3 hover:border-gray-300" style="animation-delay: {{ (loop.index0 * 0.03)|round(2) }}s">
+                <div class="flex items-start justify-between gap-2">
+                    <h3 class="text-sm font-semibold text-gray-800">{{ w.jenis_izin }}</h3>
+                    <span class="px-2 py-0.5 bg-[#F0DAD6] text-[#A6362F] text-[10px] font-bold rounded-full whitespace-nowrap">{{ w.overdue|int }} telat</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">{{ w.dinas }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="panel-card col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-base font-bold text-gray-800 mb-1">Top 5 Dinas Bermasalah</h2>
+        <p class="text-xs text-gray-400 mb-4">Diurutkan dari total keterlambatan tertinggi</p>
+        {% if not warning_by_dinas %}
+        <p class="text-center text-sm text-gray-400 py-8">Tidak ada dinas bermasalah.</p>
+        {% endif %}
+        <div class="flex flex-col gap-3">
+            {% for d in warning_by_dinas %}
+            <div class="flex items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-800 truncate" title="{{ d.dinas }}">{{ d.dinas }}</p>
+                    <p class="text-xs text-gray-400">{{ d.jumlah_jenis }} jenis izin telat</p>
+                </div>
+                <span class="px-2 py-1 bg-[#F0DAD6] text-[#A6362F] text-[10px] font-bold rounded-full whitespace-nowrap">{{ d.total_overdue|int }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

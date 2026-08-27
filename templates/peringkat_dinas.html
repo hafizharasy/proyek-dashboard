@@ -1,0 +1,131 @@
+{% extends "layout.html" %}
+{% block page_title %}Peringkat Kinerja Dinas{% endblock %}
+
+{% block content %}
+<div class="anim-fade grid grid-cols-3 gap-6 mb-6" style="animation-delay:.02s">
+    <div class="kpi-card bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#0E6E5C]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Dinas Paling Produktif</span>
+        {% if produktif %}
+        <div class="text-lg font-bold text-[#16213D] mt-2 truncate" title="{{ produktif[0].dinas }}">{{ produktif[0].dinas }}</div>
+        <p class="text-xs text-gray-400 mt-1">{{ produktif[0].selesai|int }} berkas selesai</p>
+        {% else %}
+        <div class="text-sm text-gray-400 mt-2">Belum ada data</div>
+        {% endif %}
+    </div>
+    <div class="kpi-card bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#A6362F]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Rapor Merah Tertinggi</span>
+        {% if bottleneck %}
+        <div class="text-lg font-bold text-[#16213D] mt-2 truncate" title="{{ bottleneck[0].dinas }}">{{ bottleneck[0].dinas }}</div>
+        <p class="text-xs text-gray-400 mt-1">{{ '%.0f'|format(bottleneck[0].backlog_ratio * 100) }}% berkasnya masih menumpuk</p>
+        {% else %}
+        <div class="text-sm text-gray-400 mt-2">Belum ada data</div>
+        {% endif %}
+    </div>
+    <div class="kpi-card bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-[#16213D]">
+        <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">Paling Tepat Waktu</span>
+        {% if tepat_waktu_top %}
+        <div class="text-lg font-bold text-[#16213D] mt-2 truncate" title="{{ tepat_waktu_top[0].dinas }}">{{ tepat_waktu_top[0].dinas }}</div>
+        <p class="text-xs text-gray-400 mt-1">{{ '%.0f'|format(tepat_waktu_top[0].sla_ratio * 100) }}% berkas tepat waktu</p>
+        {% else %}
+        <div class="text-sm text-gray-400 mt-2">Belum ada data</div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="leaderboard" class="anim-fade panel-card bg-white rounded-xl shadow-sm border border-gray-100 mb-6" style="animation-delay:.1s">
+    <div class="px-6 pt-5">
+        <h2 class="text-lg font-bold text-gray-800">Papan Peringkat Kinerja Dinas</h2>
+        <p class="text-xs text-gray-400 mb-2">Bahan evaluasi perbandingan antar dinas &mdash; top 5</p>
+    </div>
+    <div class="px-6 flex gap-1 border-b border-gray-100">
+        <button class="tab-btn active text-sm px-3 py-2 border-b-2 border-transparent text-gray-500" data-tab="produktif">Paling Produktif</button>
+        <button class="tab-btn text-sm px-3 py-2 border-b-2 border-transparent text-gray-500" data-tab="bottleneck">Rapor Merah (Bottleneck)</button>
+        <button class="tab-btn text-sm px-3 py-2 border-b-2 border-transparent text-gray-500" data-tab="tepatwaktu">Paling Tepat Waktu</button>
+    </div>
+    <div class="p-6">
+        <div class="tab-panel active" data-panel="produktif" style="height:380px;"><canvas id="chart-produktif"></canvas></div>
+        <div class="tab-panel" data-panel="bottleneck" style="height:380px;"><canvas id="chart-bottleneck"></canvas></div>
+        <div class="tab-panel" data-panel="tepatwaktu" style="height:380px;"><canvas id="chart-tepatwaktu"></canvas></div>
+    </div>
+</div>
+
+<div class="anim-fade panel-card bg-white rounded-xl shadow-sm border border-gray-100 p-6" style="animation-delay:.18s">
+    <h2 class="text-lg font-bold text-gray-800">Tabel Lengkap Seluruh Dinas</h2>
+    <p class="text-xs text-gray-400 mb-4">{{ jumlah_dinas }} dinas &mdash; diurutkan berdasarkan nama</p>
+    <div class="overflow-y-auto" style="max-height: 420px;">
+        <table class="w-full text-left border-collapse text-sm">
+            <thead class="sticky top-0 bg-white">
+                <tr class="border-b border-gray-200">
+                    <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Dinas</th>
+                    <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Masuk</th>
+                    <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Selesai</th>
+                    <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Backlog</th>
+                    <th class="py-2 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">SLA</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for d in dinas_all %}
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-2.5 font-medium text-gray-800">{{ d.dinas }}</td>
+                    <td class="py-2.5 text-center">{{ d.masuk|int }}</td>
+                    <td class="py-2.5 text-center">{{ d.selesai|int }}</td>
+                    <td class="py-2.5 text-center">{{ (d.proses + d.pending)|int }}</td>
+                    <td class="py-2.5 text-center">
+                        <span class="badge-pop px-2 py-1 text-[10px] font-bold rounded-full inline-block {{ 'bg-[#DCEAE4] text-[#0E6E5C]' if d.sla_ratio >= 0.8 else 'bg-[#F0DAD6] text-[#A6362F]' }}">{{ '%.0f'|format(d.sla_ratio * 100) }}%</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+        });
+    });
+
+    const palette = { navy: '#16213D', teal: '#0E6E5C', amber: '#B3790E', red: '#A6362F' };
+
+    function makeBarChart(canvasId, labels, values, color, isPercent) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        new Chart(canvas, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ data: values, backgroundColor: color, borderRadius: 3 }] },
+            options: {
+                indexAxis: 'y',
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false },
+                    tooltip: { callbacks: { label: (ctx) => isPercent ? (ctx.raw * 100).toFixed(1) + '%' : ctx.raw } } },
+                scales: {
+                    x: { ticks: { callback: v => isPercent ? (v * 100) + '%' : v } },
+                    y: { ticks: { autoSkip: false } }
+                }
+            }
+        });
+    }
+
+    makeBarChart('chart-produktif',
+        {{ produktif|map(attribute='dinas')|list|tojson }},
+        {{ produktif|map(attribute='selesai')|list|tojson }},
+        palette.teal, false);
+
+    makeBarChart('chart-bottleneck',
+        {{ bottleneck|map(attribute='dinas')|list|tojson }},
+        {{ bottleneck|map(attribute='backlog_ratio')|list|tojson }},
+        palette.red, true);
+
+    makeBarChart('chart-tepatwaktu',
+        {{ tepat_waktu_top|map(attribute='dinas')|list|tojson }},
+        {{ tepat_waktu_top|map(attribute='sla_ratio')|list|tojson }},
+        palette.navy, true);
+</script>
+{% endblock %}
