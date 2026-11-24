@@ -7,14 +7,19 @@
    bagian "Database: Supabase" di bawah untuk alasannya).
 2. Install dependensi:
    pip install -r requirements.txt
-3. Set environment variable DATABASE_URL ke connection string itu.
+3. Set environment variable DATABASE_URL ke connection string itu, plus
+   PIN_AKSES (PIN login) dan SECRET_KEY (string acak panjang).
    PowerShell:  $env:DATABASE_URL = "postgresql://postgres.xxxx:password@aws-0-xxxx.pooler.supabase.com:5432/postgres"
+                $env:PIN_AKSES = "<PIN pilihan Anda>"
+                $env:SECRET_KEY = "<string acak panjang>"
    macOS/Linux: export DATABASE_URL="postgresql://postgres.xxxx:password@aws-0-xxxx.pooler.supabase.com:5432/postgres"
+                export PIN_AKSES="<PIN pilihan Anda>"
+                export SECRET_KEY="<string acak panjang>"
+   (contoh membuat SECRET_KEY: python -c "import secrets; print(secrets.token_hex(32))")
 4. Jalankan aplikasi:
    python app.py
 5. Buka http://127.0.0.1:5000 di browser.
-6. Masuk dengan PIN default: 2026
-   (ubah nilai PIN_AKSES di app.py untuk penggunaan nyata)
+6. Masuk dengan PIN yang Anda set di PIN_AKSES.
 
 ## Struktur
 - app.py                -> logika backend Flask (login PIN, upload & parsing Excel, agregasi data, riwayat per periode, routing multi-halaman)
@@ -232,6 +237,8 @@ git push -u origin main
    - Key: `DATABASE_URL`
    - Value: connection string pooler Supabase Anda (sama seperti yang
      dipakai untuk migrasi di atas)
+   - Key: `PIN_AKSES` -- Value: PIN login dashboard
+   - Key: `SECRET_KEY` -- Value: string acak panjang (lihat contoh di atas)
 6. Klik **Create Web Service** -- tunggu beberapa menit sampai status "Live"
 7. URL publiknya muncul di bagian atas (format `https://nama-app.onrender.com`)
 
@@ -240,6 +247,8 @@ paket gratis Render yang pakai disk sementara (ephemeral) **tidak lagi
 jadi masalah** -- server boleh restart/redeploy/tidur kapan saja, data
 Anda tetap aman di Supabase.
 
-### Ganti PIN sebelum go-live
-Jangan lupa ganti `PIN_AKSES = '2026'` di `app.py` ke PIN yang lebih aman
-sebelum dipakai publik, karena PIN demo ini sudah tertulis di dokumen ini.
+### PIN & SECRET_KEY
+PIN login dan kunci sesi **tidak** ditulis di kode. Keduanya dibaca dari
+environment variable `PIN_AKSES` dan `SECRET_KEY` di hosting (Vercel/Render).
+Kalau `PIN_AKSES` belum diset, login akan ditolak. Kalau `SECRET_KEY` belum
+diset, sesi login bisa sering terputus. Jangan tulis nilainya di repo ini.

@@ -1,3 +1,4 @@
+import hmac
 import os
 import re
 from datetime import datetime
@@ -12,12 +13,14 @@ from flask import (
 from openpyxl import load_workbook, Workbook
 
 app = Flask(__name__)
-app.secret_key = 'kunci_rahasia_yang_sangat_aman'
+# SECRET_KEY dipakai untuk menandatangani cookie sesi login. Wajib diset di
+# environment (Vercel/Render); kalau tidak ada, dibuat acak tiap server start.
+app.secret_key = os.environ.get('SECRET_KEY') or os.urandom(32)
 
 # ------------------------------------------------------------------
 # KONFIGURASI
 # ------------------------------------------------------------------
-PIN_AKSES = '2026'  # Ganti PIN akses dashboard di sini
+PIN_AKSES = os.environ.get('PIN_AKSES')  # PIN login dashboard, diset lewat environment variable
 DATABASE_URL = os.environ.get('DATABASE_URL')  # connection string Postgres (Supabase pooler)
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -963,7 +966,10 @@ def halaman_peringatan():
 def halaman_login():
     if request.method == 'POST':
         pin = request.form.get('pin', '')
-        if pin == PIN_AKSES:
+        if not PIN_AKSES:
+            flash('PIN akses belum dikonfigurasi di server. Hubungi admin.')
+            return redirect(url_for('halaman_login'))
+        if hmac.compare_digest(pin, PIN_AKSES):
             session['sudah_login'] = True
             return redirect(url_for('halaman_ringkasan'))
         else:
